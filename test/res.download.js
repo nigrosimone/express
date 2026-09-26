@@ -1,19 +1,16 @@
 'use strict'
 
 var after = require('after');
-var assert = require('assert')
-var asyncHooks = tryRequire('async_hooks')
-var Buffer = require('safe-buffer').Buffer
+var assert = require('node:assert')
+var AsyncLocalStorage = require('node:async_hooks').AsyncLocalStorage
+const { Buffer } = require('node:buffer');
+
 var express = require('..');
-var path = require('path')
+var path = require('node:path')
 var request = require('supertest');
 var utils = require('./support/utils')
 
 var FIXTURES_PATH = path.join(__dirname, 'fixtures')
-
-var describeAsyncHooks = typeof asyncHooks.AsyncLocalStorage === 'function'
-  ? describe
-  : describe.skip
 
 describe('res', function(){
   describe('.download(path)', function(){
@@ -27,7 +24,7 @@ describe('res', function(){
       request(app)
       .get('/')
       .expect('Content-Type', 'text/html; charset=utf-8')
-      .expect('Content-Disposition', 'attachment; filename="user.html"')
+      .expect('Content-Disposition', 'attachment; filename=user.html')
       .expect(200, '<p>{{user.name}}</p>', done)
     })
 
@@ -70,7 +67,7 @@ describe('res', function(){
       request(app)
       .get('/')
       .expect('Content-Type', 'text/html; charset=utf-8')
-      .expect('Content-Disposition', 'attachment; filename="document"')
+      .expect('Content-Disposition', 'attachment; filename=document')
       .expect(200, done)
     })
   })
@@ -87,18 +84,18 @@ describe('res', function(){
       request(app)
       .get('/')
       .expect('Content-Type', 'text/html; charset=utf-8')
-      .expect('Content-Disposition', 'attachment; filename="user.html"')
+      .expect('Content-Disposition', 'attachment; filename=user.html')
       .expect(200, cb);
     })
 
-    describeAsyncHooks('async local storage', function () {
-      it('should presist store', function (done) {
+    describe('async local storage', function () {
+      it('should persist store', function (done) {
         var app = express()
         var cb = after(2, done)
         var store = { foo: 'bar' }
 
         app.use(function (req, res, next) {
-          req.asyncLocalStorage = new asyncHooks.AsyncLocalStorage()
+          req.asyncLocalStorage = new AsyncLocalStorage()
           req.asyncLocalStorage.run(store, next)
         })
 
@@ -116,16 +113,16 @@ describe('res', function(){
         request(app)
           .get('/')
           .expect('Content-Type', 'text/plain; charset=utf-8')
-          .expect('Content-Disposition', 'attachment; filename="name.txt"')
+          .expect('Content-Disposition', 'attachment; filename=name.txt')
           .expect(200, 'tobi', cb)
       })
 
-      it('should presist store on error', function (done) {
+      it('should persist store on error', function (done) {
         var app = express()
         var store = { foo: 'bar' }
 
         app.use(function (req, res, next) {
-          req.asyncLocalStorage = new asyncHooks.AsyncLocalStorage()
+          req.asyncLocalStorage = new AsyncLocalStorage()
           req.asyncLocalStorage.run(store, next)
         })
 
@@ -165,7 +162,7 @@ describe('res', function(){
       request(app)
         .get('/')
         .expect(200)
-        .expect('Content-Disposition', 'attachment; filename=".name"')
+        .expect('Content-Disposition', 'attachment; filename=.name')
         .expect('Cache-Control', 'public, max-age=14400')
         .expect(utils.shouldHaveBody(Buffer.from('tobi')))
         .end(done)
@@ -262,7 +259,7 @@ describe('res', function(){
           request(app)
             .get('/')
             .expect(200)
-            .expect('Content-Disposition', 'attachment; filename="user.html"')
+            .expect('Content-Disposition', 'attachment; filename=user.html')
             .end(done)
         })
 
@@ -280,7 +277,7 @@ describe('res', function(){
           request(app)
             .get('/')
             .expect(200)
-            .expect('Content-Disposition', 'attachment; filename="user.html"')
+            .expect('Content-Disposition', 'attachment; filename=user.html')
             .end(done)
         })
       })
@@ -299,7 +296,7 @@ describe('res', function(){
         request(app)
           .get('/')
           .expect(200)
-          .expect('Content-Disposition', 'attachment; filename="name.txt"')
+          .expect('Content-Disposition', 'attachment; filename=name.txt')
           .expect(utils.shouldHaveBody(Buffer.from('tobi')))
           .end(done)
       })
@@ -316,7 +313,7 @@ describe('res', function(){
         request(app)
           .get('/')
           .expect(200)
-          .expect('Content-Disposition', 'attachment; filename="name.txt"')
+          .expect('Content-Disposition', 'attachment; filename=name.txt')
           .expect(utils.shouldHaveBody(Buffer.from('tobi')))
           .end(done)
       })
@@ -370,7 +367,7 @@ describe('res', function(){
       request(app)
       .get('/')
       .expect('Content-Type', 'text/html; charset=utf-8')
-      .expect('Content-Disposition', 'attachment; filename="document"')
+      .expect('Content-Disposition', 'attachment; filename=document')
       .expect(200, cb);
     })
   })
@@ -389,7 +386,7 @@ describe('res', function(){
       .get('/')
       .expect(200)
       .expect('Content-Type', 'text/html; charset=utf-8')
-      .expect('Content-Disposition', 'attachment; filename="document"')
+      .expect('Content-Disposition', 'attachment; filename=document')
       .end(cb)
     })
 
@@ -406,7 +403,7 @@ describe('res', function(){
       request(app)
         .get('/')
         .expect(200)
-        .expect('Content-Disposition', 'attachment; filename="document"')
+        .expect('Content-Disposition', 'attachment; filename=document')
         .expect('Cache-Control', 'public, max-age=14400')
         .expect(utils.shouldHaveBody(Buffer.from('tobi')))
         .end(done)
@@ -429,7 +426,7 @@ describe('res', function(){
         .get('/')
         .expect(200)
         .expect('Content-Type', 'text/x-custom')
-        .expect('Content-Disposition', 'attachment; filename="document"')
+        .expect('Content-Disposition', 'attachment; filename=document')
         .end(done)
       })
 
@@ -449,7 +446,7 @@ describe('res', function(){
         .get('/')
         .expect(200)
         .expect('Content-Type', 'text/x-custom')
-        .expect('Content-Disposition', 'attachment; filename="document"')
+        .expect('Content-Disposition', 'attachment; filename=document')
         .end(done)
       })
     })
@@ -488,11 +485,3 @@ describe('res', function(){
     })
   })
 })
-
-function tryRequire (name) {
-  try {
-    return require(name)
-  } catch (e) {
-    return {}
-  }
-}

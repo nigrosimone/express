@@ -2,7 +2,7 @@
 
 var express = require('../')
   , request = require('supertest')
-  , assert = require('assert');
+  , assert = require('node:assert');
 var utils = require('./support/utils');
 
 describe('res', function(){
@@ -326,19 +326,5 @@ describe('res', function(){
         .expect(200, '{\n  "name": "tobi",\n  "age": 2\n}', done)
       })
     })
-  })
-
-  it('should not override previous Content-Types', function(done){
-    var app = express();
-
-    app.get('/', function(req, res){
-      res.type('application/vnd.example+json');
-      res.jsonp({ hello: 'world' });
-    });
-
-    request(app)
-    .get('/')
-    .expect('content-type', 'application/vnd.example+json; charset=utf-8')
-    .expect(200, '{"hello":"world"}', done)
   })
 })

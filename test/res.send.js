@@ -1,9 +1,9 @@
 'use strict'
 
-var assert = require('assert')
-var Buffer = require('safe-buffer').Buffer
+var assert = require('node:assert')
+const { Buffer } = require('node:buffer');
 var express = require('..');
-var methods = require('methods');
+var methods = require('../lib/utils').methods;
 var request = require('supertest');
 var utils = require('./support/utils');
 
@@ -122,6 +122,32 @@ describe('res', function(){
       .expect(200, 'hey', done);
     })
 
+    it('should preserve existing parameters when adding charset', function(done){
+      var app = express();
+
+      app.use(function(req, res){
+        res.set('Content-Type', 'text/plain; foo=bar').send('hey');
+      });
+
+      request(app)
+      .get('/')
+      .expect('Content-Type', 'text/plain; foo=bar; charset=utf-8')
+      .expect(200, 'hey', done);
+    })
+
+    it('should not throw on a Content-Type that fails to parse', function(done){
+      var app = express();
+
+      app.use(function(req, res){
+        res.set('Content-Type', 'text/plain; foo').send('hey');
+      });
+
+      request(app)
+      .get('/')
+      .expect('Content-Type', 'text/plain; charset=utf-8')
+      .expect(200, 'hey', done);
+    })
+
     it('should keep charset in Content-Type for Buffers', function(done){
       var app = express();
 
@@ -176,6 +202,19 @@ describe('res', function(){
       .get('/')
       .expect('Content-Type', 'text/plain; charset=utf-8')
       .expect(200, 'hey', done);
+    })
+
+    it('should accept Uint8Array', function(done){
+      var app = express();
+      app.use(function(req, res){
+        const encodedHey = new TextEncoder().encode("hey");
+        res.set("Content-Type", "text/plain").send(encodedHey);
+      })
+
+      request(app)
+        .get("/")
+        .expect("Content-Type", "text/plain; charset=utf-8")
+        .expect(200, "hey", done);
     })
 
     it('should not override ETag', function (done) {
@@ -551,6 +590,46 @@ describe('res', function(){
         .expect(utils.shouldNotHaveHeader('ETag'))
         .expect(200, done);
       })
+    })
+  })
+
+  describe('when Transfer-Encoding header is present', function(){
+    var transferEncodings = [
+      'chunked',
+      'compress',
+      'deflate',
+      'gzip'
+    ];
+
+    transferEncodings.forEach(function(encoding){
+      it('should not add Content-Length header if Transfer-Encoding header is equal to ' + encoding, function(done){
+        var app = express();
+
+        app.use(function(_, res){
+          res.status(200).set('Transfer-Encoding', encoding).send('');
+        });
+
+        request(app)
+          .get('/')
+          .expect(utils.shouldNotHaveHeader('Content-Length'))
+          .expect(utils.shouldHaveHeader('Transfer-Encoding'))
+          .expect(200, '', done);
+      })
+    });
+
+    it('should still generate an ETag', function(done){
+      var app = express();
+
+      app.use(function(_, res){
+        res.set('Transfer-Encoding', 'chunked').send('hello');
+      });
+
+      request(app)
+        .get('/')
+        .expect(utils.shouldNotHaveHeader('Content-Length'))
+        .expect(utils.shouldHaveHeader('Transfer-Encoding'))
+        .expect('ETag', 'W/"5-qvTGHdzF6KLavt4PO0gs2a6pQ00"')
+        .expect(200, 'hello', done);
     })
   })
 })

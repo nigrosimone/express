@@ -1,8 +1,8 @@
 'use strict'
 
-var assert = require('assert')
+var assert = require('node:assert')
 var express = require('..');
-var path = require('path')
+var path = require('node:path')
 var tmpl = require('./support/tmpl');
 
 describe('app', function(){
@@ -328,6 +328,24 @@ describe('app', function(){
         if (err) return done(err);
         assert.strictEqual(str, '<p>jane</p>')
         done();
+      })
+    })
+
+    it('should accept null or undefined options', function (done) {
+      var app = createApp()
+
+      app.set('views', path.join(__dirname, 'fixtures'))
+      app.locals.user = { name: 'tobi' }
+
+      app.render('user.tmpl', null, function (err, str) {
+        if (err) return done(err);
+        assert.strictEqual(str, '<p>tobi</p>')
+
+        app.render('user.tmpl', undefined, function (err2, str2) {
+          if (err2) return done(err2);
+          assert.strictEqual(str2, '<p>tobi</p>')
+          done()
+        })
       })
     })
 
